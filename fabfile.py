@@ -55,6 +55,14 @@ def composite(source_directory=".", extension="jpg", dest_file="output.mp4",
 
 #  command = "ffmpeg -f image2 -r 25 -i %s/%s.%s -b 1000k %s" %
 # (source_directory, "%d", new_extension, dest_file)
+
+#	loop through the directory symlinking images to their index numbers
+  i = 1
+  for filename in glob.glob(os.path.join(source_directory, '*.%s' % new_extension)):
+    symlink = "%d.%s" % (i, new_extension)
+    local("ln -s %s %s" % (filename, symlink))
+    i++
+
   command = "ffmpeg -f image2 \
     -r 25 \
     -i %s/%s.%s \
