@@ -36,6 +36,7 @@ def composite(source_directory=".", extension="jpg", dest_file="output.mp4",
   rotate=None, size=(1920, 1024)):
   """
   Stitch stills in to a compliant mp4 video.
+  @todo Non-square pixels at HD?
   """
 # if the input format isn't understood by ffmpeg normalize the images first
   new_extension = extension
@@ -60,25 +61,30 @@ def composite(source_directory=".", extension="jpg", dest_file="output.mp4",
 
 #	loop through the directory symlinking images to their index numbers
   i = 1
-  local("rm %s/symlink-*.%s" % (source_directory, new_extension))
+  try:
+    local("rm %s/symlink-*.%s" % (source_directory, new_extension))
+  except:
+    pass
   for filename in sorted(glob.glob(os.path.join(source_directory, '*.%s' % new_extension))):
     symlink = os.path.join(source_directory, 'symlink-%d.%s' % (i, new_extension))
     local("ln -sf %s %s" % (filename, symlink))
     i += 1
+# sudo find /usr/share/ffmpeg -iname '*.ffpreset'
 
   command = "ffmpeg -f image2 \
     -r 25 \
     -i %s/%s.%s \
     -ab 1000k \
-    -vb 2000k \
-    -vpre hq \
+    -vb 3000k \
+    -vpre libx264-hq \
     -acodec libfaac \
     -vcodec libx264 \
-    -%s" % (source_directory, "symlink-%d", new_extension, dest_file)
+    %s" % (source_directory, "symlink-%d", new_extension, dest_file)
   error = local(command, capture=True)
   print error
   
   local("rm %s/symlink-*.%s" % (source_directory, new_extension))
+
 
 def distribute():
   """
