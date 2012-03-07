@@ -39,6 +39,7 @@ def composite(source_directory=".", extension="jpg", dest_file="output.mp4",
   """
 # if the input format isn't understood by ffmpeg normalize the images first
   new_extension = extension
+  preprocess = False
   args = [
     "-size %dx%d" % (size[0], size[0]),
     "-resize %dx%d" % (size[0], size[0]),
@@ -51,30 +52,33 @@ def composite(source_directory=".", extension="jpg", dest_file="output.mp4",
     new_extension = "png"
   if rotate:
     args.append("-rotate %d" % int(rotate))
-  local("mogrify %s %s/*.%s" % (" ".join(args), source_directory, extension))
+  if preprocess:
+    local("mogrify %s %s/*.%s" % (" ".join(args), source_directory, extension))
 
 #  command = "ffmpeg -f image2 -r 25 -i %s/%s.%s -b 1000k %s" %
 # (source_directory, "%d", new_extension, dest_file)
 
 #	loop through the directory symlinking images to their index numbers
   i = 1
-  for filename in glob.glob(os.path.join(source_directory, '*.%s' % new_extension)):
-    symlink = "%d.%s" % (i, new_extension)
-    local("ln -s %s %s" % (filename, symlink))
-    i++
+  local("rm %s/symlink-*.%s" % (source_directory, new_extension))
+  for filename in sorted(glob.glob(os.path.join(source_directory, '*.%s' % new_extension))):
+    symlink = os.path.join(source_directory, 'symlink-%d.%s' % (i, new_extension))
+    local("ln -sf %s %s" % (filename, symlink))
+    i += 1
 
   command = "ffmpeg -f image2 \
     -r 25 \
     -i %s/%s.%s \
     -ab 1000k \
     -vb 2000k \
-    -vbre hq \
+    -vpre hq \
     -acodec libfaac \
     -vcodec libx264 \
-    -%s" % (source_directory, "%d", new_extension, dest_file)
+    -%s" % (source_directory, "symlink-%d", new_extension, dest_file)
   error = local(command, capture=True)
   print error
-
+  
+  local("rm %s/symlink-*.%s" % (source_directory, new_extension))
 
 def distribute():
   """
